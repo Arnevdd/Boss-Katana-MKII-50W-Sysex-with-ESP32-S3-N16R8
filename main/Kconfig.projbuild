@@ -1,0 +1,19 @@
+menu "Katana USB MIDI Host"
+
+    config KATANA_USB_VID
+        hex "Expected Boss/Roland USB Vendor ID"
+        default 0x0582
+
+    config KATANA_USB_PID
+        hex "Expected Boss/Roland USB Product ID (Katana models differ)"
+        default 0x01D8
+        help
+            Your unit enumerated as 0x01D8. Other amps may use another PID;
+            use menuconfig to match lsusb / Device Manager, or enable
+            CONFIG_KATANA_ACCEPT_ANY_ROLAND_PID.
+
+    config KATANA_ACCEPT_ANY_ROLAND_PID
+        bool "Accept any Roland (0x0582) PID with a MIDI streaming interface"
+        default n
+
+endmenu

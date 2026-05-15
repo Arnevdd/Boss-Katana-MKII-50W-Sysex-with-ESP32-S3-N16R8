@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "usb_midi_host.c"
+        "usb_midi_packet.c"
+        "katana_sysex.c"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        usb
+        driver
+        esp_timer
+        freertos
+)
