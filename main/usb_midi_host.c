@@ -430,9 +430,9 @@ bool midi_host_is_ready(void)
     return r;
 }
 
-bool midi_host_send_sysex(const uint8_t *msg, size_t len, TickType_t wait)
+static bool midi_host_submit_packet(const uint8_t *packet, size_t len, TickType_t wait)
 {
-    if (!msg || len == 0) {
+    if (!packet || len == 0 || (len % 4) != 0) {
         return false;
     }
 
@@ -446,11 +446,10 @@ bool midi_host_send_sysex(const uint8_t *msg, size_t len, TickType_t wait)
     const size_t cap = s_midi.tx->data_buffer_size;
     xSemaphoreGive(s_state_mu);
 
-    size_t packed = 0;
-    if (usb_midi_pack_sysex(0, msg, len, buf, cap, &packed) != 0) {
-        ESP_LOGE(TAG, "USB-MIDI pack failed");
+    if (len > cap) {
         return false;
     }
+    memcpy(buf, packet, len);
 
     xSemaphoreTake(s_state_mu, portMAX_DELAY);
     if (!s_midi.ready || !s_midi.tx || !s_midi.dev) {
@@ -459,7 +458,7 @@ bool midi_host_send_sysex(const uint8_t *msg, size_t len, TickType_t wait)
     }
 
     usb_transfer_t *t = s_midi.tx;
-    t->num_bytes = (int)packed;
+    t->num_bytes = (int)len;
     t->device_handle = s_midi.dev;
     t->bEndpointAddress = s_midi.ep_out;
     t->callback = tx_done_cb;
@@ -476,7 +475,7 @@ bool midi_host_send_sysex(const uint8_t *msg, size_t len, TickType_t wait)
         usb_parse_endpoint_descriptor_by_address(cfg, s_midi.if_num, s_midi.if_alt, s_midi.ep_out, &off);
     if (ep) {
         const int mps = USB_EP_DESC_GET_MPS(ep);
-        if (mps > 0 && (packed % (size_t)mps) == 0) {
+        if (mps > 0 && (len % (size_t)mps) == 0) {
             t->flags |= USB_TRANSFER_FLAG_ZERO_PACK;
         }
     }
@@ -500,4 +499,38 @@ bool midi_host_send_sysex(const uint8_t *msg, size_t len, TickType_t wait)
         return false;
     }
     return true;
+}
+
+bool midi_host_send_program_change(uint8_t program, TickType_t wait)
+{
+    uint8_t packet[4];
+    if (usb_midi_pack_program_change(0, 0, program, packet) != 0) {
+        return false;
+    }
+    return midi_host_submit_packet(packet, sizeof(packet), wait);
+}
+
+bool midi_host_send_sysex(const uint8_t *msg, size_t len, TickType_t wait)
+{
+    if (!msg || len == 0) {
+        return false;
+    }
+
+    xSemaphoreTake(s_state_mu, portMAX_DELAY);
+    if (!s_midi.ready || !s_midi.tx || !s_midi.dev) {
+        xSemaphoreGive(s_state_mu);
+        return false;
+    }
+
+    uint8_t *buf = s_midi.tx->data_buffer;
+    const size_t cap = s_midi.tx->data_buffer_size;
+    xSemaphoreGive(s_state_mu);
+
+    size_t packed = 0;
+    if (usb_midi_pack_sysex(0, msg, len, buf, cap, &packed) != 0) {
+        ESP_LOGE(TAG, "USB-MIDI pack failed");
+        return false;
+    }
+
+    return midi_host_submit_packet(buf, packed, wait);
 }

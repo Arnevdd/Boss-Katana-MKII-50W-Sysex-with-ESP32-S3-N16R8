@@ -49,6 +49,14 @@ int usb_midi_pack_sysex(uint8_t cable, const uint8_t *sysex, size_t sysex_len,
         const size_t rem = sysex_len - i;
 
         if (rem >= 4) {
+            /* Last 4 bytes are ... XX F7 — use END_3 on the final 3-byte chunk */
+            if (sysex[i + 3] == 0xF7) {
+                if (write_pkt(&wp, &room, (uint8_t)(cn | CIN_SYSEX_END_3), sysex[i], sysex[i + 1], sysex[i + 2]) != 0) {
+                    return -1;
+                }
+                i += 4;
+                break;
+            }
             if (write_pkt(&wp, &room, (uint8_t)(cn | CIN_SYSEX_3), sysex[i], sysex[i + 1], sysex[i + 2]) != 0) {
                 return -1;
             }
@@ -90,5 +98,18 @@ int usb_midi_pack_sysex(uint8_t cable, const uint8_t *sysex, size_t sysex_len,
     if ((*out_len % 4) != 0) {
         return -1;
     }
+    return 0;
+}
+
+int usb_midi_pack_program_change(uint8_t cable, uint8_t midi_channel, uint8_t program, uint8_t out[4])
+{
+    if (!out) {
+        return -1;
+    }
+    const uint8_t cn = (uint8_t)((cable & 0x0F) << 4);
+    out[0] = (uint8_t)(cn | 0x0C);
+    out[1] = (uint8_t)(0xC0 | (midi_channel & 0x0F));
+    out[2] = (uint8_t)(program & 0x7F);
+    out[3] = 0;
     return 0;
 }

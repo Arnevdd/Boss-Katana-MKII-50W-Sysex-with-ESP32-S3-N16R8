@@ -1,25 +1,36 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include "esp_err.h"
 
-#define KATANA_MS3_HEADER_0 0x41
-#define KATANA_MS3_HEADER_1 0x00
-#define KATANA_MS3_HEADER_2 0x00
-#define KATANA_MS3_HEADER_3 0x00
-#define KATANA_MS3_HEADER_4 0x00
-#define KATANA_MS3_HEADER_5 0x33
+typedef bool (*katana_sysex_send_fn)(const uint8_t *data, size_t len, void *ctx);
 
-#define KATANA_PARA_REVERB      0x60000540UL
-#define KATANA_PARA_REVERB_LED  0x60000661UL
+#define KATANA_SYSEX_FX_LEN  15
+#define KATANA_SYSEX_CH_LEN  16 /* PARA_PC uses MS3 2-byte data (KatanaFootController valueSize=2) */
 
 extern const uint8_t katana_sysex_identity_15[15];
 extern const uint8_t katana_sysex_editor_mode_15[15];
-extern const uint8_t katana_sysex_reverb_color[3][15];
 
-esp_err_t katana_send_handshake_sequence(void (*send_raw_sysex)(const uint8_t *data, size_t len, void *ctx), void *ctx);
+typedef enum {
+    KATANA_EFFECT_BOOSTER = 0,
+    KATANA_EFFECT_MOD,
+    KATANA_EFFECT_FX,
+    KATANA_EFFECT_DELAY,
+    KATANA_EFFECT_REVERB,
+    KATANA_EFFECT_COUNT,
+} katana_effect_t;
 
-esp_err_t katana_send_reverb_color(void (*send_raw_sysex)(const uint8_t *data, size_t len, void *ctx), void *ctx,
-                                   unsigned color_index);
+#define KATANA_EFFECT_CYCLE_STEPS 4
+
+esp_err_t katana_send_handshake_sequence(katana_sysex_send_fn send_raw_sysex, void *ctx);
+
+esp_err_t katana_send_channel(katana_sysex_send_fn send_raw_sysex, void *ctx, unsigned channel_1_to_4);
+
+/* Program Change value for GPIO CH1–4 (must match Tone Studio PROGRAM MAP). */
+uint8_t katana_channel_midi_program(unsigned channel_1_to_4);
+
+esp_err_t katana_send_effect_cycle_step(katana_sysex_send_fn send_raw_sysex, void *ctx, katana_effect_t effect,
+                                        unsigned step);
