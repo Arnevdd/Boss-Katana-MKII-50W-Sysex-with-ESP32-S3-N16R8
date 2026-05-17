@@ -7,7 +7,6 @@ The controller supports:
 - Four channel switches (CH1–CH4)
 - Five effect switches (Booster, Mod, FX, Delay, Reverb)
 - Effect type cycling (green, red, yellow) and on/off control
-- Stable SysEx‑only switching without relying on Program Change
 - Automatic Katana editor‑mode handshake on connection
 
 Hardware requirements:
