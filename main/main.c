@@ -15,6 +15,7 @@
 
 #include "katana_sysex.h"
 #include "usb_midi_host.h"
+#include <stdio.h>
 
 static const char *TAG = "app";
 
@@ -66,6 +67,18 @@ static bool s_handshake_done;
 static bool katana_tx_bridge(const uint8_t *data, size_t len, void *ctx)
 {
     (void)ctx;
+    if (data && len > 0) {
+        char hexbuf[256];
+        char *p = hexbuf;
+        size_t cap = sizeof(hexbuf);
+        for (size_t i = 0; i < len && (size_t)(p - hexbuf) < cap - 4; i++) {
+            int n = snprintf(p, cap - (p - hexbuf), "%02X ", data[i]);
+            if (n < 0) break;
+            p += n;
+        }
+        *p = '\0';
+        ESP_LOGI(TAG, "TX SysEx len=%u: %s", (unsigned)len, hexbuf);
+    }
     if (!midi_host_send_sysex(data, len, pdMS_TO_TICKS(2000))) {
         ESP_LOGE(TAG, "MIDI TX failed (len=%u)", (unsigned)len);
         return false;

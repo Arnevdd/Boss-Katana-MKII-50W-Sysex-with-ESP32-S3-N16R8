@@ -11,8 +11,8 @@ const uint8_t katana_sysex_editor_mode_15[15] = {
     0xF0, 0x41, 0x00, 0x00, 0x00, 0x00, 0x33, 0x12, 0x7F, 0x00, 0x00, 0x01, 0x01, 0x7F, 0xF7,
 };
 
-/* Katana 50W MKII PROGRAM MAP (Tone Studio): A CH1/2 → PC 1/2, B CH1/2 → PC 6/7 */
-static const uint8_t katana_midi_program_change[4] = {1, 2, 3, 4};
+/* Katana 50W MKII program change mapping: A CH1-2 → PC 0-1, B CH1-2 → PC 5-6 */
+static const uint8_t katana_midi_program_change[4] = {0, 1, 5, 6};
 
 /*
  * 50W has four amp channels (A CH1/2, B CH1/2). Use global PARA_PC 1–4 SysEx
